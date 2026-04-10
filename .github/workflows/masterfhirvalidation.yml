@@ -39,26 +39,30 @@ jobs:
           path: validation
 
       - name: Check out validation-service-fhir-r4
-        uses: actions/checkout@master
-        env:
-          ONTO_AUTH_URL: https://ontology.nhs.uk/authorisation/auth/realms/nhs-digital-terminology/protocol/openid-connect/token
-          ONTO_SERVER_URL: https://ontology.nhs.uk/production1/fhir
-          
+        uses: actions/checkout@master 
         with:
           repository: ryma2fhir/FHIR-JPA-Service
           ref: main
           path: validation-service-fhir-r4
       
-        
-      - name: Configure FHIR Validator
-        run: cd validation-service-fhir-r4 && mvn package && docker compose up
+      - name: Build validation service
+        run: |
+          cd validation-service-fhir-r4
+          mvn -B -ntp package
+            
+      - name: Start Validation Serivce
+        run: |
+          cd validation-service-fhir-r4
+          docker compose up
         env:
           CI: true
           ONTO_CLIENT_ID: ${{ secrets.ONTO_CLIENT_ID }}
           ONTO_CLIENT_SECRET: ${{ secrets.ONTO_CLIENT_SECRET }}
+          ONTO_AUTH_URL: https://ontology.nhs.uk/authorisation/auth/realms/nhs-digital-terminology/protocol/openid-connect/token
+          ONTO_SERVER_URL: https://ontology.nhs.uk/production1/fhir 
       
 
-      - name: Wait for FHIR Validator Build before running Tests
+      - name: Wait for FHIR Validator is Online Before Running Tests
         run: |
           for i in {1..60}; do
             if curl -sSf http://localhost:9001/metadata > /dev/null || \
