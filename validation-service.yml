@@ -1,0 +1,242 @@
+name: FHIR Validation Service
+
+on:
+  # Triggered by repository dispatch from assets repo
+  repository_dispatch:
+    types: [validate-fhir-assets]
+  
+  # Also allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      assets_repo:
+        description: 'Assets repository (owner/repo)'
+        required: true
+        default: 'ryma2fhir/your-assets-repo'
+      assets_ref:
+        description: 'Branch/tag/commit to validate'
+        required: true
+        default: 'main'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout validation scripts
+        uses: actions/checkout@v4
+        with:
+          repository: ryma2fhir/Validation-github-action
+          path: validation
+      
+      - name: Checkout FHIR assets repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.client_payload.repository || github.event.inputs.assets_repo }}
+          ref: ${{ github.event.client_payload.ref || github.event.inputs.assets_ref }}
+          path: assets
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Checkout FHIR JPA Service
+        uses: actions/checkout@v4
+        with:
+          repository: ryma2fhir/FHIR-JPA-Service
+          path: fhir-service
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Python dependencies
+        run: |
+          pip install requests pyyaml
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build FHIR JPA Service
+        run: |
+          cd fhir-service
+          docker build -t ryma2fhir-hapi:latest .
+      
+      - name: Start FHIR JPA Service
+        run: |
+          docker run -d \
+            --name fhir-service \
+            -p 8080:8080 \
+            --health-cmd="curl -f http://localhost:8080/fhir/metadata || exit 1" \
+            --health-interval=10s \
+            --health-timeout=5s \
+            --health-retries=30 \
+            ryma2fhir-hapi:latest
+          
+          echo "FHIR service container started"
+      
+      - name: Wait for FHIR service to be healthy
+        run: |
+          echo "Waiting for FHIR service to be ready..."
+          
+          max_attempts=60
+          attempt=0
+          
+          while [ $attempt -lt $max_attempts ]; do
+            attempt=$((attempt + 1))
+            echo "Attempt $attempt/$max_attempts..."
+            
+            # Check Docker health status
+            health_status=$(docker inspect --format='{{.State.Health.Status}}' fhir-service 2>/dev/null || echo "unknown")
+            
+            if [ "$health_status" = "healthy" ]; then
+              echo "✓ FHIR service is healthy!"
+              break
+            fi
+            
+            # Also try direct HTTP check
+            if curl -sf http://localhost:8080/fhir/metadata > /dev/null 2>&1; then
+              echo "✓ FHIR service is responding!"
+              break
+            fi
+            
+            if [ $attempt -eq $max_attempts ]; then
+              echo "✗ FHIR service failed to become healthy after $max_attempts attempts"
+              echo "Container logs:"
+              docker logs fhir-service
+              exit 1
+            fi
+            
+            sleep 10
+          done
+          
+          # Verify service is actually working
+          echo "Verifying FHIR metadata endpoint..."
+          curl -f http://localhost:8080/fhir/metadata || exit 1
+          echo "✓ FHIR service is ready for validation"
+      
+      - name: Copy assets to validation workspace
+        run: |
+          # Copy FHIR assets to expected locations
+          mkdir -p validation/fhir
+          mkdir -p validation/examples
+          
+          # Copy conformance resources (adjust paths as needed)
+          if [ -d "assets/fhir" ]; then
+            cp -r assets/fhir/* validation/fhir/ 2>/dev/null || true
+          fi
+          
+          if [ -d "assets/resources" ]; then
+            cp -r assets/resources/* validation/fhir/ 2>/dev/null || true
+          fi
+          
+          # Copy examples
+          if [ -d "assets/examples" ]; then
+            cp -r assets/examples/* validation/examples/ 2>/dev/null || true
+          fi
+          
+          # Copy package.json and CapabilityStatement
+          if [ -f "assets/package.json" ]; then
+            cp assets/package.json validation/
+          fi
+          
+          if [ -f "assets/CapabilityStatement.json" ]; then
+            cp assets/CapabilityStatement.json validation/
+          fi
+          
+          echo "Assets copied to validation workspace"
+      
+      - name: Install FHIR packages
+        run: |
+          cd validation
+          python3 scripts/configure-packages.py
+      
+      - name: Upload FHIR assets
+        run: |
+          cd validation
+          python3 scripts/upload-assets.py
+      
+      - name: Validate FHIR assets
+        run: |
+          cd validation
+          python3 scripts/validate-assets.py
+      
+      - name: Upload CapabilityStatement
+        run: |
+          cd validation
+          python3 scripts/upload-capability.py
+      
+      - name: Validate examples
+        run: |
+          cd validation
+          python3 scripts/validate-examples.py
+      
+      - name: Generate validation report
+        if: always()
+        run: |
+          cd validation
+          python3 scripts/generate-report.py
+      
+      - name: Show FHIR service logs on failure
+        if: failure()
+        run: |
+          echo "=== FHIR Service Logs ==="
+          docker logs fhir-service
+      
+      - name: Stop FHIR service
+        if: always()
+        run: |
+          docker stop fhir-service || true
+          docker rm fhir-service || true
+      
+      - name: Upload validation results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: validation-results
+          path: |
+            validation/validation-report.md
+            validation/validation-results.json
+      
+      - name: Comment on source repo PR
+        if: always() && github.event.client_payload.pr_number
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('validation/validation-report.md', 'utf8');
+            
+            const repo_parts = '${{ github.event.client_payload.repository }}'.split('/');
+            
+            github.rest.issues.createComment({
+              owner: repo_parts[0],
+              repo: repo_parts[1],
+              issue_number: ${{ github.event.client_payload.pr_number }},
+              body: report
+            });
+      
+      - name: Set commit status on source repo
+        if: always() && github.event.client_payload.sha
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('validation/validation-results.json', 'utf8'));
+            
+            const failed = results.failed.length + results.errors.length;
+            const state = failed > 0 ? 'failure' : 'success';
+            const description = failed > 0 
+              ? `Validation failed: ${failed} error(s)` 
+              : `Validation passed: ${results.passed.length} example(s)`;
+            
+            const repo_parts = '${{ github.event.client_payload.repository }}'.split('/');
+            
+            github.rest.repos.createCommitStatus({
+              owner: repo_parts[0],
+              repo: repo_parts[1],
+              sha: '${{ github.event.client_payload.sha }}',
+              state: state,
+              description: description,
+              target_url: `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
+              context: 'FHIR Validation'
+            });
