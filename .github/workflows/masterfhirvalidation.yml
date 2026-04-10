@@ -56,10 +56,11 @@ jobs:
           docker compose up
         env:
           CI: true
-          ONTO_CLIENT_ID: ${{ secrets.ONTO_CLIENT_ID }}
-          ONTO_CLIENT_SECRET: ${{ secrets.ONTO_CLIENT_SECRET }}
           ONTO_AUTH_URL: https://ontology.nhs.uk/authorisation/auth/realms/nhs-digital-terminology/protocol/openid-connect/token
           ONTO_SERVER_URL: https://ontology.nhs.uk/production1/fhir 
+          ONTO_CLIENT_ID: ${{ secrets.ONTO_CLIENT_ID }}
+          ONTO_CLIENT_SECRET: ${{ secrets.ONTO_CLIENT_SECRET }}
+          
       
 
       - name: Wait for FHIR Validator is Online Before Running Tests
