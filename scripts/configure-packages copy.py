@@ -7,12 +7,9 @@ import sys
 import time
 import os
 import base64
-
-FHIR_BASE = "http://localhost:8080/fhir"
-
-##############################################
-
 from dotenv import load_dotenv
+
+
 load_dotenv()  # does nothing if no .env file exists, so safe to leave in
 
 
@@ -57,8 +54,9 @@ def install_package(package_id, version):
 
 
 def main():
-    try:
-        with open('../package.json') as f:
+    print(os.getcwd())
+    try:       
+        with open(PACKAGE_PATH) as f:
             package = json.load(f)
     except FileNotFoundError:
         print("No package.json found - skipping package installation")
