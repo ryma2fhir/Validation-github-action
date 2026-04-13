@@ -1,9 +1,0 @@
-{
-  "name": "your-fhir-implementation-guide",
-  "version": "1.0.0",
-  "description": "FHIR conformance resources and examples",
-  "dependencies": {
-    "hl7.fhir.r4.core": "4.0.1",
-    "hl7.fhir.uv.ips": "1.1.0"
-  }
-}
