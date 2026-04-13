@@ -1,65 +1,60 @@
 name: IOPS-FHIR-Validation-Terminology
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
-  # Allows you to run this workflow manually from the Actions tab
-
   workflow_call:
     secrets:
       ONTO_CLIENT_ID:
         required: true
       ONTO_CLIENT_SECRET:
         required: true
-      FAILONWARNING:
-        required: false
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           submodules: true
-      
+
       - uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '21'
-      
+
       - name: Check out IOPS-Validation
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
-          repository: ryma2fhir/Validation-github-action # orignally known as NHSDigital/IOPS-Validation
+          repository: ryma2fhir/Validation-github-action
           path: validation
 
       - name: Check out validation-service-fhir-r4
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           repository: ryma2fhir/FHIR-JPA-Service
           ref: main
           path: validation-service-fhir-r4
-      
-        
-      - name: Configure FHIR Validator
-        run: cd validation-service-fhir-r4 && mvn package && docker compose up
+
+      - name: Build validation service
+        run: |
+          cd validation-service-fhir-r4
+          mvn -B -ntp package
+
+      - name: Start Validation Service
+        run: |
+          cd validation-service-fhir-r4
+          docker compose up -d
         env:
           CI: true
+          ONTO_AUTH_URL: https://ontology.nhs.uk/authorisation/auth/realms/nhs-digital-terminology/protocol/openid-connect/token
+          ONTO_SERVER_URL: https://ontology.nhs.uk/production1/fhir
           ONTO_CLIENT_ID: ${{ secrets.ONTO_CLIENT_ID }}
           ONTO_CLIENT_SECRET: ${{ secrets.ONTO_CLIENT_SECRET }}
-      
 
-      - name: Wait for FHIR Validator Build before running Tests
+      - name: Wait for FHIR Validator to be available
         run: |
           for i in {1..60}; do
-            if curl -sSf http://localhost:9001/metadata > /dev/null || \
-               curl -sSf http://localhost:9001/fhir/metadata > /dev/null; then
+            if curl -sSf http://localhost:8080/fhir/metadata > /dev/null; then
               echo "FHIR Validator is up!"
               exit 0
             fi
@@ -69,34 +64,40 @@ jobs:
 
           echo "FHIR Validator failed to start in time"
           exit 1
-        
+
       - name: Install FHIR packages
         run: |
           cd validation
           python3 scripts/configure-packages.py
-      
+
       - name: Upload FHIR assets
         run: |
           cd validation
           python3 scripts/upload-assets.py
-      
+
       - name: Validate FHIR assets
         run: |
           cd validation
           python3 scripts/validate-assets.py
-      
+
       - name: Upload CapabilityStatement
         run: |
           cd validation
           python3 scripts/upload-capability.py
-      
+
       - name: Validate examples
         run: |
           cd validation
           python3 scripts/validate-examples.py
-      
+
       - name: Generate validation report
         if: always()
         run: |
           cd validation
           python3 scripts/generate-report.py
+
+      - name: Stop Validation Service
+        if: always()
+        run: |
+          cd validation-service-fhir-r4
+          docker compose down
