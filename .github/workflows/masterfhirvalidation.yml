@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -23,7 +23,7 @@ jobs:
           java-version: '21'
 
       - name: Check out IOPS-Validation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ryma2fhir/Validation-github-action
           path: validation
