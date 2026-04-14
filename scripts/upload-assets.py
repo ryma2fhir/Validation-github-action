@@ -6,9 +6,16 @@ import requests
 import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
+from dotenv import load_dotenv
 import os
 
-ROOT = f"{os.getcwd()}/Validation-github-action"
+
+
+load_dotenv()  # does nothing if no .env file exists, so safe to leave in
+
+ROOT = os.getenv("ROOT")
+PACKAGE_PATH = os.getenv("PACKAGE_PATH")
+SERVER_URL = os.getenv("SERVER_URL")
 
 ASSETS_FOLDERS = [
     "CapabilityStatement",
