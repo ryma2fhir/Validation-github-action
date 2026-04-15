@@ -69,21 +69,9 @@ jobs:
         working-directory: validation
         run: python3 scripts/configure-packages.py
 
-      - name: Upload FHIR assets
+      - name: Upload FHIR assets + Examples
         working-directory: validation
         run: python3 scripts/upload-assets.py
-
-      - name: Validate FHIR assets
-        working-directory: validation
-        run: python3 scripts/validate-assets.py
-
-      - name: Upload CapabilityStatement
-        working-directory: validation
-        run: python3 scripts/upload-capability.py
-
-      - name: Validate examples
-        working-directory: validation
-        run: python3 scripts/validate-examples.py
 
       - name: Generate validation report
         working-directory: validation
