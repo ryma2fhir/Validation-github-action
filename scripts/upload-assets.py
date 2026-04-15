@@ -6,9 +6,12 @@ import requests
 import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
+import os
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+config_path = os.path.join(script_dir, "config.json")
 
-with open("./scripts/config.json","r") as f:
+with open(config_path,"r") as f:
     config = json.load(f)
 # ROOT = './test' #used for local testing
 ROOT = './'
