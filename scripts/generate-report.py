@@ -79,11 +79,14 @@ def render_section(title, emoji, issues, colour):
     html += "</details>\n"
     return html
 
+
+
 def main():
     results_file = "./operation_outcomes.json"
+    failed_file = "./failed.json"
 
     issues = parse_validation_output(results_file)
-
+    fatals = issues["fatal"]
     errors = issues["error"]
     warnings = issues["warning"]
     information = issues["information"]
@@ -92,11 +95,16 @@ def main():
 
 | Severity | Count |
 |----------|-------|
+| ⚠️ Failed Uploads | {len(failed)} |
+| ❗ Fatals | {len(fatal)} |
 | 🔴 Errors | {len(errors)} |
 | 🟡 Warnings | {len(warnings)} |
 | 🔵 Information | {len(information)} |
 
 ---
+{render_section("Failed Uploads", "❗", failed_file, "red")}
+
+{render_section("Fatals", "❗", fatals, "red")}
 
 {render_section("Errors", "🔴", errors, "red")}
 
@@ -115,3 +123,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+    for filename in ['failed', 'operation_outcomes']:
+        filepath = f"./{filename}.json"
+        if os.path.exists(filepath):
+            os.remove(filepath)

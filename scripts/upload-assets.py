@@ -52,7 +52,10 @@ def get_json_info(file_path, failed):
     
     except Exception as e:
         print(f"Error getting resource id and resource type for {str(file_path)}: {e}")
-        failed.insert({str(file_path):e})
+        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {e}]}}'''
+
+        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
+        failed.setdefault("package.json", []).append(new_entry)
         return False
 
 def get_xml_info(file_path, failed):
@@ -73,7 +76,10 @@ def get_xml_info(file_path, failed):
     
     except Exception as e:
         print(f"Error getting resource id and/or resource type for {file_path}: {e}")
-        failed.insert({str(file_path):e})
+        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {e}]}}'''
+
+        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
+        failed.setdefault("package.json", []).append(new_entry)
         return False
 
 def upload_resource(file_path,resource, resource_id, resource_type, format, failed):
@@ -107,12 +113,18 @@ def upload_resource(file_path,resource, resource_id, resource_type, format, fail
             print(f"Failed to upload {resource_type}/{resource_id}: {response.status_code}")
             print(f"  File: {str(file_path)}")
             print(f"  Response: {response.text[:200]}")
-            failed.insert({str(file_path):response.status_code})
+            new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {response.status_code}]}}'''
+
+            # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
+            failed.setdefault("package.json", []).append(new_entry)
             return False
             
     except Exception as e:
         print(f"Error uploading {str(file_path)}: {e}")
-        failed.insert({str(file_path):e})
+        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {e}]}}'''
+
+        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
+        failed.setdefault("package.json", []).append(new_entry)
         return False
     
 def validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed):
@@ -155,6 +167,10 @@ def validate_resource(file_path, resource, resource_id, resource_type, format, o
 
     except Exception as e:
         print(f"Error validating {str(file_path)}: {e}")
+        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {e}]}}'''
+
+        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
+        failed.setdefault("package.json", []).append(new_entry)
         return False
 
 def main():

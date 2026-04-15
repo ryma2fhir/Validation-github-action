@@ -9,9 +9,12 @@ import os
 import base64
 
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+config_path = os.path.join(script_dir, "config.json")
 
-with open("./config.json","r") as f:
+with open(config_path,"r") as f:
     config = json.load(f)
+
 ROOT = '.'
 SERVER_URL = config["fhir-validator"]["base_url"]
 PACKAGE_PATH = config["paths"]["package"]
@@ -26,12 +29,16 @@ def check_package_locally(package_id, version, root):
     return False
 
     
-def download_package(package_id, version, root):
+def download_package(package_id, version, root, failed):
     url = f"https://packages.simplifier.net/{package_id}/{version}"
     response = requests.get(url)
     
     if response.status_code == 404:
         print(f"Package {package_id}#{version} not found on registry")
+        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": "failed to find {package_id}: {version} on FHIR package Registry"]}}'''
+
+        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
+        failed.setdefault("package.json", []).append(new_entry)
         return False
     
     with open(f"{root}/packages/{package_id}-{version}.tgz", "wb") as f:
@@ -63,6 +70,9 @@ def install_package(package_id, version, root, server_url):
 
 
 def main():
+
+    failed = {}
+
     try:       
         with open(PACKAGE_PATH) as f:
             package = json.load(f)
@@ -79,7 +89,7 @@ def main():
     
     print(f"Installing FHIR packages...")
     
-    failed = []
+
     for package_id, version in dependencies.items():
         # Give server time between installations
         if package_id == "hl7.fhir.r4.core":
@@ -92,12 +102,22 @@ def main():
 
 
         if not install_package(package_id, version, ROOT, SERVER_URL):
-            failed.append(f"{package_id}#{version}")
+            new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": "failed to $insert {package_id}: {version}"]}}'''
+
+            # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
+            failed.setdefault("package.json", []).append(new_entry)
+
+            
+        
     
     if failed:
         print(f"\nFailed to install {len(failed)} packages:")
-        for pkg in failed:
+        for pkg, _ in failed.items():
             print(f"  - {pkg}")
+
+        with open(f"'failed'.json",'w') as f:
+            json.dump(failed,f)
+
         return 1
     
     print(f"\nSuccessfully installed {num_packages} packages")
