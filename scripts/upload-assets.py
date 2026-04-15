@@ -17,6 +17,7 @@ with open(config_path,"r") as f:
 ROOT = './'
 SERVER_URL = config["fhir-validator"]["base_url"]
 
+IGNORE_FOLDERS = {"validation", "validation-service-fhir-r4"}
 
 ASSETS_FOLDERS = [
     "CapabilityStatement",
@@ -168,6 +169,9 @@ def main():
 
     # find all folders that contain string in ASSET_FOLDERS and EXAMPLES and then find all xml/json files within them recursively
     for folder in Path(ROOT).iterdir():
+        if folder.is_dir() and folder.name in IGNORE_FOLDERS:
+            continue
+
         if folder.is_dir() and any(asset.lower() in folder.name.lower() for asset in ASSETS_FOLDERS):
             asset_json_files.update(folder.rglob("*.json"))
             asset_xml_files.update(folder.rglob("*.xml"))
@@ -190,11 +194,9 @@ def main():
     if len(all_files) == 0:
         return 0
 
-
     print(f"Uploading {len(all_asset_files)} FHIR assets and {len(all_example_files)} FHIR Examples...")
                     
             
-
     for file_path, format in all_asset_files:
         get_info = get_json_info if format == "json" else get_xml_info
         result = get_info(file_path, failed)
