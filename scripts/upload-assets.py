@@ -6,16 +6,13 @@ import requests
 import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from dotenv import load_dotenv
-import os
 
 
+with open("./scripts/config.json","r") as f:
+    config = json.load(f)
+ROOT = './test'
+SERVER_URL = config["fhir-validator"]["base_url"]
 
-load_dotenv()  # does nothing if no .env file exists, so safe to leave in
-
-ROOT = os.getenv("ROOT")
-PACKAGE_PATH = os.getenv("PACKAGE_PATH")
-SERVER_URL = os.getenv("SERVER_URL")
 
 ASSETS_FOLDERS = [
     "CapabilityStatement",
@@ -35,10 +32,8 @@ ASSETS_FOLDERS = [
     "TerminologyCapabilities",
     "Conformance-resources"
 ]
-EXAMPLES_FOLDERS = "examples"
+EXAMPLES_FOLDERS = ["Examples"]
 
-FHIR_BASE = "http://localhost:8080/fhir"
-ASSETS_DIR = "fhir"  # Adjust to your directory structure
 
 def get_json_info(file_path):
     try:
@@ -78,18 +73,23 @@ def upload_resource(file_path,resource, resource_id, resource_type, format):
     """Upload a single FHIR resource"""
     try:
         # Use PUT with id for idempotency
-        url = f"{FHIR_BASE}/{resource_type}/{resource_id}"
+        url = f"{SERVER_URL}/{resource_type}/{resource_id}"
         if format == "xml":
             response = requests.put(
                 url,
                 data=resource,
-                headers={"Content-Type": "application/fhir+xml"}
+                headers={
+                    "Content-Type": "application/fhir+xml",
+                    "Accept": "application/fhir+json"
+                    }
             )
         else:
             response = requests.put(
                 url,
                 json=resource,
-                headers={"Content-Type": "application/fhir+json"}
+                headers={
+                    "Content-Type": "application/fhir+json",
+                    "Accept": "application/fhir+json"}
             )
 
         
@@ -106,97 +106,119 @@ def upload_resource(file_path,resource, resource_id, resource_type, format):
         print(f"Error uploading {file_path}: {e}")
         return False
     
-def validate_resources(file_path, resource, resource_id, resource_type, format):
-    # Simple validation using $validate
+def validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes):
     try:
-        params = {
-            "resourceType": "Parameters",
-            "parameter": [
-                {
-                    "name": "resource",
-                    "resource": resource
-                }
-            ]
-        }
-        
-        url = f"{FHIR_BASE}/{resource_type}/{resource_id}"
+        url = f"{SERVER_URL}/{resource_type}/$validate"
+
         if format == "xml":
-            response = requests.put(
+            response = requests.post(
                 url,
-                data=resource,
-                headers={"Content-Type": "application/fhir+xml"}
+                data=resource,  # raw XML string of the resource
+                headers={
+                    "Content-Type": "application/fhir+xml",
+                    "Accept": "application/fhir+json"
+                    }
             )
         else:
-            response = requests.put(
+            params = {
+                "resourceType": "Parameters",
+                "parameter": [
+                    {
+                        "name": "resource",
+                        "resource": resource
+                    }
+                ]
+            }
+            response = requests.post(
                 url,
-                json=resource,
-                headers={"Content-Type": "application/fhir+json"}
+                json=params,
+                headers={
+                    "Content-Type": "application/fhir+json",
+                    "Accept": "application/fhir+json"
+                    }
             )
-        
-        if response.status_code == 200:
-            outcome = response.json()
-            issues = outcome.get('issue', [])
-            errors = [i for i in issues if i.get('severity') in ['error', 'fatal']]
-            
-            if errors:
-                print(f"Invalid {resource_type}/{resource_id}")
-                for error in errors[:3]:  # Show first 3 errors
-                    print(f"  - {error.get('diagnostics', 'No details')}")
-                return False
-            else:
-                print(f"Valid {resource_type}/{resource_id}")
-                return True
-        else:
-            print(f"Validation failed for {resource_type}/{resource_id}: {response.status_code}")
-            return False
-            
+
+        # $validate always returns an OperationOutcome
+        outcome = response.json()
+        operation_outcomes.update({file_path:outcome})
+
+        return True
+
     except Exception as e:
         print(f"Error validating {file_path}: {e}")
         return False
 
 def main():
     failed = []
-    total = 0
+    total_num_files = 0
+    operation_outcomes = {}
 
-    for folder in ASSETS_FOLDERS:
-        assets_path = Path(ROOT) / folder
-    
-        if not assets_path.exists():
+    asset_json_files = set()
+    asset_xml_files = set()
+    example_json_files = set()
+    example_xml_files = set()
+
+    # find all folders that contain string in ASSET_FOLDERS and EXAMPLES and then find all xml/json files within them recursively
+    for folder in Path(ROOT).iterdir():
+        if folder.is_dir() and any(asset.lower() in folder.name.lower() for asset in ASSETS_FOLDERS):
+            asset_json_files.update(folder.rglob("*.json"))
+            asset_xml_files.update(folder.rglob("*.xml"))
+        
+        if folder.is_dir() and any(asset.lower() in folder.name.lower() for asset in EXAMPLES_FOLDERS):
+            example_json_files.update(folder.rglob("*.json"))
+            example_xml_files.update(folder.rglob("*.xml"))
+
+    # Convert back to list if needed
+    asset_json_files = list(asset_json_files)
+    asset_xml_files = list(asset_xml_files)
+    example_json_files = list(example_json_files)
+    example_xml_files = list(example_xml_files)
+            
+    all_asset_files = [(f, "json", "asset") for f in sorted(asset_json_files)] + [(f, "xml","asset") for f in sorted(asset_xml_files)]
+    all_example_files = [(f, "json", "example") for f in sorted(example_json_files)] + [(f, "xml", "example") for f in sorted(example_xml_files)]
+    all_files = all_asset_files + all_example_files
+    total_num_files += len(all_files)
+            
+    if len(all_files) == 0:
+        return 0
+
+
+    print(f"Uploading {len(all_asset_files)} FHIR assets and {len(all_example_files)} FHIR Examples...")
+                    
+            
+
+    for file_path, format, asset_or_example in all_files:
+        get_info = get_json_info if format == "json" else get_xml_info
+        result = get_info(file_path)
+        
+        if result is False:
+            failed.append(str(file_path))
             continue
         
-        # Find all JSON files (conformance resources)
-        json_files = list(assets_path.rglob("*.json"))
-        xml_files = list(assets_path.rglob("*.xml"))
-
-        total += len(json_files) + len(xml_files)
+        resource, resource_id, resource_type = result
         
-        if not json_files or not xml_files:
-            continue
-        
-        print(f"Uploading {len(json_files)} FHIR assets...")
-                
-        all_files = [(f, "json") for f in sorted(json_files)] + [(f, "xml") for f in sorted(xml_files)]
-
-        for file_path, format in all_files:
-            get_info = get_json_info if format == "json" else get_xml_info
-            result = get_info(file_path)
-            
-            if result is False:
-                failed.append(str(file_path))
-                continue
-            
-            resource, resource_id, resource_type = result
-            
+        if asset_or_example == 'assets': #only PUT assets onto the server
             if not upload_resource(file_path, resource, resource_id, resource_type, format):
                 failed.append(str(file_path))
+                continue
+
+        if not validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes):
+            failed.append(str(file_path))
+
+    '''
+    for filename, file in {'failed': failed, 'operation_outcomes': operation_outcomes}.items():
+        with open(f"{ROOT}/{str(filename)}.json",'x') as f:
+            json.dump(file,f)
+    '''
+    print(failed)
+    print("\n\n")
+    print(operation_outcomes)
     
     if failed:
-        print(f"\nFailed to upload {len(failed)} assets:")
+        print(f"\nFailed to upload {len(failed)} assets / examples:")
         for f in failed:
             print(f"  - {f}")
-        return 1
-    
-    print(f"\nSuccessfully uploaded all {total} assets")
+    print(f"\nSuccessfully uploaded all {total_num_files} assets")
     return 0
 
 if __name__ == "__main__":

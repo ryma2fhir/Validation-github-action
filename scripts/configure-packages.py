@@ -18,6 +18,13 @@ ROOT = os.getenv("ROOT")
 PACKAGE_PATH = os.getenv("PACKAGE_PATH")
 SERVER_URL = os.getenv("SERVER_URL")
 
+with open("./config.json","r") as f:
+    config = json.load(f)
+ROOT = '.'
+SERVER_URL = config["fhir-validator"]["base_url"]
+PACKAGE_PATH = config["paths"]["package"]
+
+
 
 def check_package_locally(package_id, version, root):
     name = f"{package_id}#{version}.tgz"
