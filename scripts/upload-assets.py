@@ -35,7 +35,7 @@ ASSETS_FOLDERS = [
 EXAMPLES_FOLDERS = ["Examples"]
 
 
-def get_json_info(file_path):
+def get_json_info(file_path, failed):
     try:
         with open(file_path) as f:
             resource = json.load(f)
@@ -46,10 +46,11 @@ def get_json_info(file_path):
         return resource, resource_id, resource_type
     
     except Exception as e:
-        print(f"Error getting resource id and resource type for {file_path}: {e}")
+        print(f"Error getting resource id and resource type for {str(file_path)}: {e}")
+        failed.insert({str(file_path):e})
         return False
 
-def get_xml_info(file_path):
+def get_xml_info(file_path, failed):
     try:
         tree = ET.parse(file_path)
         root = tree.getroot()
@@ -67,9 +68,10 @@ def get_xml_info(file_path):
     
     except Exception as e:
         print(f"Error getting resource id and/or resource type for {file_path}: {e}")
+        failed.insert({str(file_path):e})
         return False
 
-def upload_resource(file_path,resource, resource_id, resource_type, format):
+def upload_resource(file_path,resource, resource_id, resource_type, format, failed):
     """Upload a single FHIR resource"""
     try:
         # Use PUT with id for idempotency
@@ -98,15 +100,17 @@ def upload_resource(file_path,resource, resource_id, resource_type, format):
             return True
         else:
             print(f"Failed to upload {resource_type}/{resource_id}: {response.status_code}")
-            print(f"  File: {file_path}")
+            print(f"  File: {str(file_path)}")
             print(f"  Response: {response.text[:200]}")
+            failed.insert({str(file_path):response.status_code})
             return False
             
     except Exception as e:
-        print(f"Error uploading {file_path}: {e}")
+        print(f"Error uploading {str(file_path)}: {e}")
+        failed.insert({str(file_path):e})
         return False
     
-def validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes):
+def validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed):
     try:
         url = f"{SERVER_URL}/{resource_type}/$validate"
 
@@ -140,16 +144,16 @@ def validate_resource(file_path, resource, resource_id, resource_type, format, o
 
         # $validate always returns an OperationOutcome
         outcome = response.json()
-        operation_outcomes.update({file_path:outcome})
+        operation_outcomes.update({str(file_path):outcome})
 
         return True
 
     except Exception as e:
-        print(f"Error validating {file_path}: {e}")
+        print(f"Error validating {str(file_path)}: {e}")
         return False
 
 def main():
-    failed = []
+    failed = {}
     total_num_files = 0
     operation_outcomes = {}
 
@@ -174,8 +178,8 @@ def main():
     example_json_files = list(example_json_files)
     example_xml_files = list(example_xml_files)
             
-    all_asset_files = [(f, "json", "asset") for f in sorted(asset_json_files)] + [(f, "xml","asset") for f in sorted(asset_xml_files)]
-    all_example_files = [(f, "json", "example") for f in sorted(example_json_files)] + [(f, "xml", "example") for f in sorted(example_xml_files)]
+    all_asset_files = [(f, "json") for f in sorted(asset_json_files)] + [(f, "xml") for f in sorted(asset_xml_files)]
+    all_example_files = [(f, "json") for f in sorted(example_json_files)] + [(f, "xml") for f in sorted(example_xml_files)]
     all_files = all_asset_files + all_example_files
     total_num_files += len(all_files)
             
@@ -187,9 +191,9 @@ def main():
                     
             
 
-    for file_path, format, asset_or_example in all_files:
+    for file_path, format in all_asset_files:
         get_info = get_json_info if format == "json" else get_xml_info
-        result = get_info(file_path)
+        result = get_info(file_path, failed)
         
         if result is False:
             failed.append(str(file_path))
@@ -197,19 +201,30 @@ def main():
         
         resource, resource_id, resource_type = result
         
-        if asset_or_example == 'assets': #only PUT assets onto the server
-            if not upload_resource(file_path, resource, resource_id, resource_type, format):
-                failed.append(str(file_path))
-                continue
 
-        if not validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes):
+        if not upload_resource(file_path, resource, resource_id, resource_type, format, failed):
             failed.append(str(file_path))
+            continue
 
-    '''
+
+
+    for file_path, format in all_files:
+        get_info = get_json_info if format == "json" else get_xml_info
+        result = get_info(file_path, failed)
+        
+        if result is False:
+            failed.append(str(file_path))
+            continue
+        
+        resource, resource_id, resource_type = result
+
+        if not validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed):
+            failed.append(str(file_path))
+    
     for filename, file in {'failed': failed, 'operation_outcomes': operation_outcomes}.items():
-        with open(f"{ROOT}/{str(filename)}.json",'x') as f:
+        with open(f"{ROOT}/{str(filename)}.json",'w') as f:
             json.dump(file,f)
-    '''
+    
     print(failed)
     print("\n\n")
     print(operation_outcomes)
