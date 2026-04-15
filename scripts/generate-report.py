@@ -1,162 +1,117 @@
-#!/usr/bin/env python3
-"""Generate validation report for PR comment"""
-
+import os
 import json
 import sys
-from pathlib import Path
+from collections import defaultdict
 
-def generate_report():
-    """Generate markdown report from validation results"""
+def parse_validation_output(results_file):
+    with open(results_file) as f:
+        data = json.load(f)
     
-    try:
-        with open('validation-results.json') as f:
-            results = json.load(f)
-    except FileNotFoundError:
-        return "## ⚠️ FHIR Validation Report\n\nNo validation results found."
+    issues = {"fatal": [], "error": [], "warning": [], "information": []}
     
-    passed = results.get('passed', [])
-    failed = results.get('failed', [])
-    skipped = results.get('skipped', [])
-    errors = results.get('errors', [])
+    for file_path, outcome in data.items():
+        for issue in outcome.get("issue", []):
+            severity = issue.get("severity", "").lower()
+            diagnostics = issue.get("diagnostics", "")
+            
+            # expression and location are both lists of strings
+            expression = issue.get("expression", [])
+            location = issue.get("location", [])
+            
+            # Get line/col from extensions if available
+            line, col = None, None
+            for ext in issue.get("extension", []):
+                if "issue-line" in ext.get("url", ""):
+                    line = ext.get("valueInteger")
+                elif "issue-col" in ext.get("url", ""):
+                    col = ext.get("valueInteger")
+            
+            position = f"Line[{line}] Col[{col}]" if line and col else ", ".join(location)
+
+            if severity in issues:
+                issues[severity].append({
+                    "file": file_path,
+                    "message": diagnostics,
+                    "expression": ", ".join(expression),
+                    "location": position
+                })
     
-    total = len(passed) + len(failed) + len(skipped) + len(errors)
-    
-    # Determine overall status
-    if failed or errors:
-        status_emoji = "❌"
-        status_text = "FAILED"
-    elif total == 0:
-        status_emoji = "⚠️"
-        status_text = "NO EXAMPLES"
+    return issues
+
+def group_by_file(issue_list):
+    grouped = defaultdict(list)
+    for issue in issue_list:
+        grouped[issue["file"]].append(issue)
+    return grouped
+
+def make_file_link(file_path):
+    """Create a GitHub link to the file in the repo"""
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    sha = os.environ.get("GITHUB_SHA", "")
+    if repo and sha:
+        url = f"https://github.com/{repo}/blob/{sha}/{file_path}"
+        return f'<a href="{url}"><code>{file_path}</code></a>'
+    return f"<code>{file_path}</code>"
+
+def render_section(title, emoji, issues, colour):
+    grouped = group_by_file(issues)
+    total = len(issues)
+    file_count = len(grouped)
+
+    html = f"""
+<details>
+<summary><strong>{emoji} {title} &nbsp;|&nbsp; {total} total across {file_count} file(s)</strong></summary>
+<br>
+"""
+
+    if not issues:
+        html += f"<p>✅ No {title.lower()} found.</p>\n"
     else:
-        status_emoji = "✅"
-        status_text = "PASSED"
-    
-    # Build report
-    lines = [
-        f"## {status_emoji} FHIR Validation Report - {status_text}",
-        "",
-        "### Summary",
-        "",
-        f"- ✅ **Passed:** {len(passed)}",
-        f"- ❌ **Failed:** {len(failed)}",
-        f"- ⊘ **Skipped:** {len(skipped)}",
-        f"- ⚠️ **Errors:** {len(errors)}",
-        "",
-    ]
-    
-    # Failed validations
-    if failed:
-        lines.extend([
-            "### ❌ Failed Validations",
-            "",
-        ])
-        
-        for item in failed:
-            file_path = item['file']
-            resource_type = item['resourceType']
-            resource_id = item['id']
-            profile = item['profile']
-            outcome = item.get('outcome', {})
-            
-            lines.append(f"#### `{file_path}`")
-            lines.append(f"- **Resource:** {resource_type}/{resource_id}")
-            lines.append(f"- **Profile:** {profile}")
-            lines.append("")
-            
-            # Extract error messages
-            issues = outcome.get('issue', [])
-            errors_list = [i for i in issues if i.get('severity') in ['error', 'fatal']]
-            
-            if errors_list:
-                lines.append("**Errors:**")
-                for error in errors_list[:5]:  # Limit to first 5 errors
-                    severity = error.get('severity', 'error')
-                    diagnostics = error.get('diagnostics', 'No details')
-                    location = error.get('expression', [''])[0] if error.get('expression') else ''
-                    
-                    if location:
-                        lines.append(f"- **{severity.upper()}** at `{location}`: {diagnostics}")
-                    else:
-                        lines.append(f"- **{severity.upper()}**: {diagnostics}")
-                
-                if len(errors_list) > 5:
-                    lines.append(f"- *(... and {len(errors_list) - 5} more errors)*")
-            
-            lines.append("")
-    
-    # Errors
-    if errors:
-        lines.extend([
-            "### ⚠️ Processing Errors",
-            "",
-        ])
-        
-        for item in errors:
-            file_path = item.get('file', 'unknown')
-            error = item.get('error', 'Unknown error')
-            
-            lines.append(f"- `{file_path}`: {error}")
-        
-        lines.append("")
-    
-    # Skipped
-    if skipped:
-        lines.extend([
-            "<details>",
-            "<summary>⊘ Skipped Examples (click to expand)</summary>",
-            "",
-        ])
-        
-        for item in skipped:
-            file_path = item['file']
-            reason = item.get('reason', 'Unknown')
-            lines.append(f"- `{file_path}`: {reason}")
-        
-        lines.extend([
-            "",
-            "</details>",
-            "",
-        ])
-    
-    # Passed (collapsed)
-    if passed:
-        lines.extend([
-            "<details>",
-            "<summary>✅ Passed Examples (click to expand)</summary>",
-            "",
-        ])
-        
-        for item in passed:
-            file_path = item['file']
-            profile = item['profile']
-            lines.append(f"- `{file_path}` → `{profile}`")
-        
-        lines.extend([
-            "",
-            "</details>",
-            "",
-        ])
-    
-    # Footer
-    lines.extend([
-        "---",
-        f"*Validated {total} example(s) against profiles defined in CapabilityStatement*"
-    ])
-    
-    return "\n".join(lines)
+        for file_path, file_issues in sorted(grouped.items()):
+            html += f"<details>\n<summary>{make_file_link(file_path)} &nbsp;— {len(file_issues)} {title.lower()}</summary>\n<br>\n"
+            html += '<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>\n'
+            for issue in file_issues:
+                location = issue.get("location") or "—"
+                message = issue["message"]
+                html += f"<tr><td><code>{location}</code></td><td>{message}</td></tr>\n"
+            html += "</tbody></table>\n</details>\n<br>\n"
+
+    html += "</details>\n"
+    return html
 
 def main():
-    report = generate_report()
-    
-    # Write to file for GitHub Actions
-    with open('validation-report.md', 'w') as f:
-        f.write(report)
-    
-    # Also print to stdout
-    print(report)
-    
-    return 0
+    results_file = "./operation_outcomes.json"
+
+    issues = parse_validation_output(results_file)
+
+    errors = issues["error"]
+    warnings = issues["warning"]
+    information = issues["information"]
+
+    summary = f"""# 🏥 FHIR Validation Summary
+
+| Severity | Count |
+|----------|-------|
+| 🔴 Errors | {len(errors)} |
+| 🟡 Warnings | {len(warnings)} |
+| 🔵 Information | {len(information)} |
+
+---
+
+{render_section("Errors", "🔴", errors, "red")}
+
+{render_section("Warnings", "🟡", warnings, "yellow")}
+
+{render_section("Information", "🔵", information, "blue")}
+"""
+
+    summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_file:
+        with open(summary_file, "w") as f:
+            f.write(summary)
+        print("✅ Summary written to GitHub Actions.")
+    else:
+        print(summary)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

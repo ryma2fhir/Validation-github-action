@@ -7,16 +7,8 @@ import sys
 import time
 import os
 import base64
-from dotenv import load_dotenv
-import os
 
 
-
-load_dotenv()  # does nothing if no .env file exists, so safe to leave in
-
-ROOT = os.getenv("ROOT")
-PACKAGE_PATH = os.getenv("PACKAGE_PATH")
-SERVER_URL = os.getenv("SERVER_URL")
 
 with open("./config.json","r") as f:
     config = json.load(f)
