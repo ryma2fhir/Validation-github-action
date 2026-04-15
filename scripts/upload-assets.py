@@ -10,7 +10,8 @@ import xml.etree.ElementTree as ET
 
 with open("./scripts/config.json","r") as f:
     config = json.load(f)
-ROOT = './test'
+# ROOT = './test' #used for local testing
+ROOT = './'
 SERVER_URL = config["fhir-validator"]["base_url"]
 
 
