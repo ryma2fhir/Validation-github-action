@@ -222,7 +222,7 @@ def main():
             failed.append(str(file_path))
     
     for filename, file in {'failed': failed, 'operation_outcomes': operation_outcomes}.items():
-        with open(f"{ROOT}/{str(filename)}.json",'w') as f:
+        with open(f"./{str(filename)}.json",'w') as f:
             json.dump(file,f)
     
     print(failed)

@@ -1,0 +1,113 @@
+# 🏥 FHIR Validation Summary
+
+| Severity | Count |
+|----------|-------|
+| 🔴 Errors | 2 |
+| 🟡 Warnings | 11 |
+| 🔵 Information | 0 |
+
+---
+
+
+<details>
+<summary><strong>🔴 Errors &nbsp;|&nbsp; 2 total across 2 file(s)</strong></summary>
+<br>
+<details>
+<summary><code>test/Examples/Pathology-Bundle-CRP-Report-Document-Example.json</code> &nbsp;— 1 errors</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>—</code></td><td>HAPI-0705: Unknown base definition: http://hl7.eu/fhir/laboratory/StructureDefinition/Observation-resultslab-eu-lab</td></tr>
+</tbody></table>
+</details>
+<br>
+<details>
+<summary><code>test/Examples/Pathology-Bundle-FBC-Report-Document-Example.json</code> &nbsp;— 1 errors</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>—</code></td><td>HAPI-0705: Unknown base definition: http://hl7.eu/fhir/laboratory/StructureDefinition/Observation-resultslab-eu-lab</td></tr>
+</tbody></table>
+</details>
+<br>
+</details>
+
+
+
+<details>
+<summary><strong>🟡 Warnings &nbsp;|&nbsp; 11 total across 8 file(s)</strong></summary>
+<br>
+<details>
+<summary><code>test/Conformance-resources/CapabilityStatement/CapabilityStatement-pathology.xml</code> &nbsp;— 1 warnings</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>Line[1] Col[50]</code></td><td>Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)</td></tr>
+</tbody></table>
+</details>
+<br>
+<details>
+<summary><code>test/Conformance-resources/codesystems/CodeSystem-England-DeviatingResultIndicator.xml</code> &nbsp;— 1 warnings</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>Line[1] Col[41]</code></td><td>Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)</td></tr>
+</tbody></table>
+</details>
+<br>
+<details>
+<summary><code>test/Conformance-resources/conceptmaps/ConceptMap-England-DeviatingResultIndicator.xml</code> &nbsp;— 1 warnings</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>Line[1] Col[41]</code></td><td>Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)</td></tr>
+</tbody></table>
+</details>
+<br>
+<details>
+<summary><code>test/Conformance-resources/structuredefinitions/England-Observation-Lab-Pathology.xml</code> &nbsp;— 2 warnings</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>Line[1] Col[50]</code></td><td>Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)</td></tr>
+<tr><td><code>StructureDefinition</code></td><td>Unable to find base http://hl7.eu/fhir/laboratory/StructureDefinition/Observation-resultslab-eu-lab for StructureDefinition, so can't check the differential</td></tr>
+</tbody></table>
+</details>
+<br>
+<details>
+<summary><code>test/Conformance-resources/structuredefinitions/StructureDefintion-extension-Observation-organizer.xml</code> &nbsp;— 1 warnings</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>Line[1] Col[50]</code></td><td>Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)</td></tr>
+</tbody></table>
+</details>
+<br>
+<details>
+<summary><code>test/Conformance-resources/valuesets/ValueSet-England-DeviatingResultIndicator.xml</code> &nbsp;— 1 warnings</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>Line[1] Col[39]</code></td><td>Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)</td></tr>
+</tbody></table>
+</details>
+<br>
+<details>
+<summary><code>test/Conformance-resources/valuesets/ValueSet-England-PathologyAndLaboratoryMedicineObservables.xml</code> &nbsp;— 2 warnings</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>Line[1] Col[39]</code></td><td>Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)</td></tr>
+<tr><td><code>Line[23] Col[18]</code></td><td>The value set references CodeSystem 'http://snomed.info/sct' which has status 'not-present'</td></tr>
+</tbody></table>
+</details>
+<br>
+<details>
+<summary><code>test/Conformance-resources/valuesets/ValueSet-England-PathologyBoundedCodeListObservables.xml</code> &nbsp;— 2 warnings</summary>
+<br>
+<table><thead><tr><th>Location</th><th>Message</th></tr></thead><tbody>
+<tr><td><code>Line[1] Col[39]</code></td><td>Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)</td></tr>
+<tr><td><code>Line[23] Col[18]</code></td><td>The value set references CodeSystem 'http://snomed.info/sct' which has status 'not-present'</td></tr>
+</tbody></table>
+</details>
+<br>
+</details>
+
+
+
+<details>
+<summary><strong>🔵 Information &nbsp;|&nbsp; 0 total across 0 file(s)</strong></summary>
+<br>
+<p>✅ No information found.</p>
+</details>

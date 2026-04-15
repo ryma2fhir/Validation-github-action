@@ -4,26 +4,38 @@ import sys
 from collections import defaultdict
 
 def parse_validation_output(results_file):
-    """Parse your FHIR validation JSON output - adjust to match your output format"""
     with open(results_file) as f:
         data = json.load(f)
-
-    issues = {"error": [], "warning": [], "information": []}
-
-    for entry in data:  # adjust depending on your JSON structure
-        file_path = entry.get("file", "unknown")
-        for issue in entry.get("issues", []):
+    
+    issues = {"fatal": [], "error": [], "warning": [], "information": []}
+    
+    for file_path, outcome in data.items():
+        for issue in outcome.get("issue", []):
             severity = issue.get("severity", "").lower()
-            message = issue.get("message", "")
-            location = issue.get("location", "")
+            diagnostics = issue.get("diagnostics", "")
+            
+            # expression and location are both lists of strings
+            expression = issue.get("expression", [])
+            location = issue.get("location", [])
+            
+            # Get line/col from extensions if available
+            line, col = None, None
+            for ext in issue.get("extension", []):
+                if "issue-line" in ext.get("url", ""):
+                    line = ext.get("valueInteger")
+                elif "issue-col" in ext.get("url", ""):
+                    col = ext.get("valueInteger")
+            
+            position = f"Line[{line}] Col[{col}]" if line and col else ", ".join(location)
 
             if severity in issues:
                 issues[severity].append({
                     "file": file_path,
-                    "message": message,
-                    "location": location
+                    "message": diagnostics,
+                    "expression": ", ".join(expression),
+                    "location": position
                 })
-
+    
     return issues
 
 def group_by_file(issue_list):
@@ -68,7 +80,7 @@ def render_section(title, emoji, issues, colour):
     return html
 
 def main():
-    results_file = sys.argv[1] if len(sys.argv) > 1 else "validation-results.json"
+    results_file = "./operation_outcomes.json"
 
     issues = parse_validation_output(results_file)
 
