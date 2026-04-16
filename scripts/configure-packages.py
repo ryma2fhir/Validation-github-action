@@ -17,7 +17,7 @@ config_path = os.path.join(script_dir, "config.json")
 with open(config_path,"r") as f:
     config = json.load(f)
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path.cwd()
 #ROOT = './test'
 SERVER_URL = config["fhir-validator"]["base_url"]
 
