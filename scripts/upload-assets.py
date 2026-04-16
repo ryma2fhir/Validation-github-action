@@ -178,10 +178,12 @@ def main():
             continue
 
         if folder.is_dir() and any(asset.lower() in folder.name.lower() for asset in ASSETS_FOLDERS):
+            print(f"{folder} found. Gathering assets")
             asset_json_files.update(folder.rglob("*.json"))
             asset_xml_files.update(folder.rglob("*.xml"))
         
         if folder.is_dir() and any(asset.lower() in folder.name.lower() for asset in EXAMPLES_FOLDERS):
+            print(f"{folder} found. Gathering examples")
             example_json_files.update(folder.rglob("*.json"))
             example_xml_files.update(folder.rglob("*.xml"))
 
