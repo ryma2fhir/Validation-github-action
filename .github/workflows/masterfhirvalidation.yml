@@ -71,14 +71,14 @@ jobs:
           ls -la
       
       - name: Install FHIR packages
-        run: python3 scripts/configure-packages.py
+        run: python3 validation/scripts/configure-packages.py
 
       - name: Upload FHIR assets + Examples
-        run: python3 scripts/upload-assets.py
+        run: python3 validation/scripts/upload-assets.py
 
       - name: Generate validation report
         if: always()
-        run: python3 scripts/generate-report.py
+        run: python3 validation/scripts/generate-report.py
 
       - name: Stop Validation Service
         if: always()
