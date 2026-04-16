@@ -7,13 +7,14 @@ import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import os
+from common import append_failure, dump_json
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "config.json")
 
 with open(config_path,"r") as f:
     config = json.load(f)
-# ROOT = './test' #used for local testing
+#ROOT = './test' #used for local testing
 ROOT = './'
 SERVER_URL = config["fhir-validator"]["base_url"]
 
@@ -52,10 +53,7 @@ def get_json_info(file_path, failed):
     
     except Exception as e:
         print(f"Error getting resource id and resource type for {str(file_path)}: {e}")
-        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {e}]}}'''
-
-        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
-        failed.setdefault("package.json", []).append(new_entry)
+        append_failure(file_path, e, failed)
         return False
 
 def get_xml_info(file_path, failed):
@@ -76,10 +74,7 @@ def get_xml_info(file_path, failed):
     
     except Exception as e:
         print(f"Error getting resource id and/or resource type for {file_path}: {e}")
-        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {e}]}}'''
-
-        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
-        failed.setdefault("package.json", []).append(new_entry)
+        append_failure(file_path, e, failed)
         return False
 
 def upload_resource(file_path,resource, resource_id, resource_type, format, failed):
@@ -113,18 +108,12 @@ def upload_resource(file_path,resource, resource_id, resource_type, format, fail
             print(f"Failed to upload {resource_type}/{resource_id}: {response.status_code}")
             print(f"  File: {str(file_path)}")
             print(f"  Response: {response.text[:200]}")
-            new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {response.status_code}]}}'''
-
-            # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
-            failed.setdefault("package.json", []).append(new_entry)
+            append_failure(file_path, response.status_code, failed)
             return False
             
     except Exception as e:
         print(f"Error uploading {str(file_path)}: {e}")
-        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {e}]}}'''
-
-        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
-        failed.setdefault("package.json", []).append(new_entry)
+        append_failure(file_path, e, failed)
         return False
     
 def validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed):
@@ -167,11 +156,11 @@ def validate_resource(file_path, resource, resource_id, resource_type, format, o
 
     except Exception as e:
         print(f"Error validating {str(file_path)}: {e}")
-        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": {e}]}}'''
-
-        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
-        failed.setdefault("package.json", []).append(new_entry)
+        append_failure(file_path, e, failed)
         return False
+
+
+
 
 def main():
     failed = {}
@@ -243,9 +232,8 @@ def main():
         if not validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed):
             failed.append(str(file_path))
     
-    for filename, file in {'failed': failed, 'operation_outcomes': operation_outcomes}.items():
-        with open(f"./{str(filename)}.json",'w') as f:
-            json.dump(file,f)
+    for filename, file in {'operation_outcomes.json': failed, 'operation_outcomes.json': operation_outcomes}.items():
+        dump_json(filename,file)
     
     print(failed)
     print("\n\n")

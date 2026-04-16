@@ -7,6 +7,7 @@ import sys
 import time
 import os
 import base64
+from common import append_failure, dump_json
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -35,10 +36,7 @@ def download_package(package_id, version, root, failed):
     
     if response.status_code == 404:
         print(f"Package {package_id}#{version} not found on registry")
-        new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": "failed to find {package_id}: {version} on FHIR package Registry"]}}'''
-
-        # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
-        failed.setdefault("package.json", []).append(new_entry)
+        append_failure("package.json", f"failed to find {package_id}: {version} on FHIR package Registry", failed)
         return False
     
     with open(f"{root}/packages/{package_id}-{version}.tgz", "wb") as f:
@@ -98,26 +96,17 @@ def main():
         time.sleep(2)
         print(f"\tInstalling {package_id}:{version}")
         if not check_package_locally(package_id, version, ROOT):
-            download_package(package_id, version, ROOT)
-
+            if not download_package(package_id, version, ROOT, failed):
+                continue
 
         if not install_package(package_id, version, ROOT, SERVER_URL):
-            new_entry=f'''{{"resourceType": "OperationOutcome","issue": ["severity": "Failure","diagnostics": "failed to $insert {package_id}: {version}"]}}'''
-
-            # If "package.json" doesn't exist, it creates it as an empty list then appends the new_entry regardless.
-            failed.setdefault("package.json", []).append(new_entry)
-
+            append_failure("package.json", f"failed to find {package_id}: {version} on FHIR package Registry", failed)
             
         
     
     if failed:
         print(f"\nFailed to install {len(failed)} packages:")
-        for pkg, _ in failed.items():
-            print(f"  - {pkg}")
-
-        with open(f"'failed'.json",'w') as f:
-            json.dump(failed,f)
-
+        dump_json("operation_outcomes.json", failed)
         return 1
     
     print(f"\nSuccessfully installed {num_packages} packages")
@@ -125,3 +114,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

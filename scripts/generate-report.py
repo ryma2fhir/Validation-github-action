@@ -7,7 +7,7 @@ def parse_validation_output(results_file):
     with open(results_file) as f:
         data = json.load(f)
     
-    issues = {"fatal": [], "error": [], "warning": [], "information": []}
+    issues = {"fatal": [], "error": [], "warning": [], "information": [], "failure": []}
     
     for file_path, outcome in data.items():
         for issue in outcome.get("issue", []):
@@ -82,10 +82,10 @@ def render_section(title, emoji, issues, colour):
 
 
 def main():
-    results_file = "./operation_outcomes.json"
-    failed_file = "./failed.json"
+    results_file = "operation_outcomes.json"
 
     issues = parse_validation_output(results_file)
+    failures = issues["failure"]
     fatals = issues["fatal"]
     errors = issues["error"]
     warnings = issues["warning"]
@@ -95,14 +95,14 @@ def main():
 
 | Severity | Count |
 |----------|-------|
-| ⚠️ Failed Uploads | {len(failed)} |
-| ❗ Fatals | {len(fatal)} |
+| ⚠️ Failed Uploads | {len(failures)} |
+| ❗ Fatals | {len(fatals)} |
 | 🔴 Errors | {len(errors)} |
 | 🟡 Warnings | {len(warnings)} |
 | 🔵 Information | {len(information)} |
 
 ---
-{render_section("Failed Uploads", "❗", failed_file, "red")}
+{render_section("Failed Uploads", "❗", failures, "red")}
 
 {render_section("Fatals", "❗", fatals, "red")}
 
