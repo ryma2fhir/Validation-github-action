@@ -229,7 +229,7 @@ def main():
 
         validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed)
     
-    for filename, file in {'operation_outcomes.json': failed, 'operation_outcomes.json': operation_outcomes}.items():
+    for file, filename in {failed: 'operation_outcomes.json', operation_outcomes: 'operation_outcomes.json'}.items():
         dump_json(filename,file)
 
     print("CWD:", os.getcwd())
