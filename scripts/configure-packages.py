@@ -73,7 +73,7 @@ def main():
     failed = {}
 
     try:       
-        with open(ROOT) as f:
+        with open(f"{ROOT}/package.json") as f:
             package = json.load(f)
     except FileNotFoundError:
         print("No package.json found - skipping package installation")
