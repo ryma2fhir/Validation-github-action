@@ -14,8 +14,8 @@ config_path = os.path.join(script_dir, "config.json")
 
 with open(config_path,"r") as f:
     config = json.load(f)
-#ROOT = './test' #used for local testing
-ROOT = Path.cwd()
+ROOT = './test' #used for local testing
+#ROOT = Path.cwd()
 SERVER_URL = config["fhir-validator"]["base_url"]
 
 IGNORE_FOLDERS = {"validation", "validation-service-fhir-r4"}
@@ -209,14 +209,12 @@ def main():
         result = get_info(file_path, failed)
         
         if result is False:
-            failed.append(str(file_path))
             continue
         
         resource, resource_id, resource_type = result
         
 
         if not upload_resource(file_path, resource, resource_id, resource_type, format, failed):
-            failed.append(str(file_path))
             continue
 
 
@@ -226,13 +224,11 @@ def main():
         result = get_info(file_path, failed)
         
         if result is False:
-            failed.append(str(file_path))
             continue
         
         resource, resource_id, resource_type = result
 
-        if not validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed):
-            failed.append(str(file_path))
+        validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed)
     
     for filename, file in {'operation_outcomes.json': failed, 'operation_outcomes.json': operation_outcomes}.items():
         dump_json(filename,file)
