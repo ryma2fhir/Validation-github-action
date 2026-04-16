@@ -71,20 +71,16 @@ jobs:
           ls -la
       
       - name: Install FHIR packages
-        working-directory: validation
         run: python3 scripts/configure-packages.py
 
       - name: Upload FHIR assets + Examples
-        working-directory: validation
         run: python3 scripts/upload-assets.py
 
       - name: Generate validation report
-        working-directory: validation
         if: always()
         run: python3 scripts/generate-report.py
 
       - name: Stop Validation Service
-        working-directory: validation
         if: always()
         run: |
           cd validation-service-fhir-r4
