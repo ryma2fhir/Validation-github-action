@@ -13,6 +13,7 @@ from pathlib import Path
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "config.json")
+repo_path = "/validation"
 
 with open(config_path,"r") as f:
     config = json.load(f)
@@ -36,12 +37,12 @@ def download_package(package_id, version, failed):
         append_failure("package.json", f"failed to find {package_id}: {version} on FHIR package Registry", failed)
         return False
     
-    with open(f"/packages/{package_id}-{version}.tgz", "wb") as f:
+    with open(f"{repo_path}/packages/{package_id}-{version}.tgz", "wb") as f:
         f.write(response.content)
         return True
     
 def install_package(package_id, version, server_url):
-    package_path = f"/packages/{package_id}-{version}.tgz"
+    package_path = f"{repo_path}/packages/{package_id}-{version}.tgz"
     
     with open(package_path, "rb") as f:
         encoded = base64.b64encode(f.read()).decode("utf-8")
