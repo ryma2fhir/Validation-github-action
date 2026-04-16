@@ -41,7 +41,7 @@ def download_package(package_id, version, failed):
         f.write(response.content)
         return True
     
-def install_package(package_id, version, server_url):
+def install_package(package_id, version, server_url, failed):
     package_path = f"{repo_path}/packages/{package_id}-{version}.tgz"
     
     with open(package_path, "rb") as f:
@@ -60,9 +60,18 @@ def install_package(package_id, version, server_url):
     response = requests.post(
         f"{server_url}/ImplementationGuide/$install",
         json=params,
-        headers={"Content-Type": "application/fhir+json"}
+        headers={
+            "Content-Type": "application/fhir+json",
+            "Accept": "application/fhir+json"}
     )
-    return response
+    if response.status_code in [200, 201]:
+        print(f"Installed {package_id}-{version}")
+        return True
+    else:
+        print(f"Failed to install {package_id}:{version}: {response.status_code} - {response.text}")
+        append_failure(f"{package_id}:{version}", response.status_code, failed)
+        return False
+
 
 
 def main():
@@ -97,8 +106,8 @@ def main():
             if not download_package(package_id, version, failed):
                 continue
 
-        if not install_package(package_id, version, SERVER_URL):
-            append_failure("package.json", f"failed to find {package_id}: {version} on FHIR package Registry", failed)
+        install_package(package_id, version, SERVER_URL, failed)
+            
             
         
     
