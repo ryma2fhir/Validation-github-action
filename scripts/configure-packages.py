@@ -20,7 +20,6 @@ with open(config_path,"r") as f:
 ROOT = Path(__file__).resolve().parent
 #ROOT = './test'
 SERVER_URL = config["fhir-validator"]["base_url"]
-PACKAGE_PATH = config["paths"]["package"]
 
 
 
@@ -74,7 +73,7 @@ def main():
     failed = {}
 
     try:       
-        with open(PACKAGE_PATH) as f:
+        with open(ROOT) as f:
             package = json.load(f)
     except FileNotFoundError:
         print("No package.json found - skipping package installation")
