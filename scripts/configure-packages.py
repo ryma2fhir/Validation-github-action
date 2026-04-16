@@ -34,7 +34,7 @@ def download_package(package_id, version, failed):
     
     if response.status_code == 404:
         print(f"Package {package_id}#{version} not found on registry")
-        append_failure("package.json", f"failed to find {package_id}: {version} on FHIR package Registry", failed)
+        append_failure("package.json", f"failed to find {package_id}: {version} on FHIR package Registry: {response.status_code} - {response.text}", failed)
         return False
     
     with open(f"{repo_path}/packages/{package_id}-{version}.tgz", "wb") as f:
