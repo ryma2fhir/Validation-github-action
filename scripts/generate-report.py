@@ -102,7 +102,7 @@ def main():
 | 🔵 Information | {len(information)} |
 
 ---
-{render_section("Failed Uploads", "❗", failures, "red")}
+{render_section("Failed Uploads", "⚠️", failures, "red")}
 
 {render_section("Fatals", "❗", fatals, "red")}
 

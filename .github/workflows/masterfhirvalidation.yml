@@ -29,7 +29,7 @@ jobs:
           path: validation
 
       - name: Check out validation-service-fhir-r4
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ryma2fhir/FHIR-JPA-Service
           ref: main

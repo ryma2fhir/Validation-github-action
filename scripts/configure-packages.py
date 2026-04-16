@@ -8,6 +8,7 @@ import time
 import os
 import base64
 from common import append_failure, dump_json
+from pathlib import Path
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -16,7 +17,8 @@ config_path = os.path.join(script_dir, "config.json")
 with open(config_path,"r") as f:
     config = json.load(f)
 
-ROOT = '.'
+ROOT = Path(__file__).resolve().parent
+#ROOT = './test'
 SERVER_URL = config["fhir-validator"]["base_url"]
 PACKAGE_PATH = config["paths"]["package"]
 
