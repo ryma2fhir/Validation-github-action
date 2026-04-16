@@ -13,7 +13,7 @@ from pathlib import Path
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "config.json")
-repo_path = "/validation"
+repo_path = f"{Path.cwd()}/validation"
 
 with open(config_path,"r") as f:
     config = json.load(f)
