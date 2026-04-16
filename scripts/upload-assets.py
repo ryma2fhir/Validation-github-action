@@ -18,7 +18,7 @@ with open(config_path,"r") as f:
 ROOT = Path.cwd() #used for github actions
 SERVER_URL = config["fhir-validator"]["base_url"]
 
-IGNORE_FOLDERS = {"validation", "validation-service-fhir-r4"}
+IGNORE_FOLDERS = {"validation", "validation-service-fhir-r4", "packages"}
 
 ASSETS_FOLDERS = [
     "CapabilityStatement",
