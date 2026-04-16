@@ -16,22 +16,18 @@ config_path = os.path.join(script_dir, "config.json")
 
 with open(config_path,"r") as f:
     config = json.load(f)
-
-ROOT = Path.cwd()
-#ROOT = './test'
 SERVER_URL = config["fhir-validator"]["base_url"]
 
 
-
-def check_package_locally(package_id, version, root):
+def check_package_locally(package_id, version):
     name = f"{package_id}#{version}.tgz"
-    for _, _, files in os.walk(f"{root}/packages"):
+    for _, _, files in os.walk(f"/packages"):
         if name in files:
             return True
     return False
 
     
-def download_package(package_id, version, root, failed):
+def download_package(package_id, version, failed):
     url = f"https://packages.simplifier.net/{package_id}/{version}"
     response = requests.get(url)
     
@@ -40,12 +36,12 @@ def download_package(package_id, version, root, failed):
         append_failure("package.json", f"failed to find {package_id}: {version} on FHIR package Registry", failed)
         return False
     
-    with open(f"{root}/packages/{package_id}-{version}.tgz", "wb") as f:
+    with open(f"/packages/{package_id}-{version}.tgz", "wb") as f:
         f.write(response.content)
         return True
     
-def install_package(package_id, version, root, server_url):
-    package_path = f"{root}/packages/{package_id}-{version}.tgz"
+def install_package(package_id, version, server_url):
+    package_path = f"/packages/{package_id}-{version}.tgz"
     
     with open(package_path, "rb") as f:
         encoded = base64.b64encode(f.read()).decode("utf-8")
@@ -73,7 +69,7 @@ def main():
     failed = {}
 
     try:       
-        with open(f"{ROOT}/package.json") as f:
+        with open(f"{Path.cwd()}/package.json") as f:
             package = json.load(f)
     except FileNotFoundError:
         print("No package.json found - skipping package installation")
@@ -96,11 +92,11 @@ def main():
             continue  # Skip core package since it's already on the server
         time.sleep(2)
         print(f"\tInstalling {package_id}:{version}")
-        if not check_package_locally(package_id, version, ROOT):
-            if not download_package(package_id, version, ROOT, failed):
+        if not check_package_locally(package_id, version):
+            if not download_package(package_id, version, failed):
                 continue
 
-        if not install_package(package_id, version, ROOT, SERVER_URL):
+        if not install_package(package_id, version, SERVER_URL):
             append_failure("package.json", f"failed to find {package_id}: {version} on FHIR package Registry", failed)
             
         
