@@ -69,7 +69,7 @@ def install_package(package_id, version, server_url, failed):
         return True
     else:
         print(f"Failed to install {package_id}:{version}: {response.status_code} - {response.text}")
-        append_failure(f"{package_id}:{version}", response.status_code, failed)
+        append_failure(f"{package_id}:{version}", response.json(), failed)
         return False
 
 
