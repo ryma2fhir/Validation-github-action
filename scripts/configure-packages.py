@@ -13,7 +13,14 @@ from pathlib import Path
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "config.json")
-repo_path = f"{Path.cwd()}/validation"
+
+#for github actions
+test_script_repo_path = f"{Path.cwd()}/validation"
+package_path = Path.cwd()
+
+#for testing locally
+#test_script_repo_path = "." 
+#package_path = "./test"
 
 with open(config_path,"r") as f:
     config = json.load(f)
@@ -37,12 +44,12 @@ def download_package(package_id, version, failed):
         append_failure("package.json", f"failed to find {package_id}: {version} on FHIR package Registry: {response.status_code} - {response.text}", failed)
         return False
     
-    with open(f"{repo_path}/packages/{package_id}-{version}.tgz", "wb") as f:
+    with open(f"{test_script_repo_path}/packages/{package_id}-{version}.tgz", "wb") as f:
         f.write(response.content)
         return True
     
 def install_package(package_id, version, server_url, failed):
-    package_path = f"{repo_path}/packages/{package_id}-{version}.tgz"
+    package_path = f"{test_script_repo_path}/packages/{package_id}-{version}.tgz"
     
     with open(package_path, "rb") as f:
         encoded = base64.b64encode(f.read()).decode("utf-8")
@@ -65,11 +72,12 @@ def install_package(package_id, version, server_url, failed):
             "Accept": "application/fhir+json"}
     )
     if response.status_code in [200, 201]:
-        print(f"Installed {package_id}-{version}")
+        print(f"Installed {package_id}:{version}")
         return True
     else:
         print(f"Failed to install {package_id}:{version}: {response.status_code} - {response.text}")
-        append_failure(f"{package_id}:{version}", response.json(), failed)
+        failed.update({f"{package_id}:{version}":response.json()})
+        #append_failure(f"{package_id}:{version}", response.json(), failed)
         return False
 
 
@@ -79,7 +87,7 @@ def main():
     failed = {}
 
     try:       
-        with open(f"{Path.cwd()}/package.json") as f:
+        with open(f"{package_path}/package.json") as f:
             package = json.load(f)
     except FileNotFoundError:
         print("No package.json found - skipping package installation")

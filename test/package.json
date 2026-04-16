@@ -8,6 +8,7 @@
   ],
   "dependencies": {
     "hl7.fhir.r4.core": "4.0.1",
-    "fhir.r4.ukcore.stu2": "8.0.2"
+    "fhir.r4.ukcore.stu2": "8.0.2",
+    "hl7.fhir.r5.core": "5.0.0"  
   }
 }
