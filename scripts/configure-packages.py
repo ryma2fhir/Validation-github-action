@@ -114,5 +114,7 @@ def main():
     return 0
 
 if __name__ == "__main__":
+    print("CWD:", os.getcwd())
+    print("Files:", os.listdir("."))
     sys.exit(main())
 

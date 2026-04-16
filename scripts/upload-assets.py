@@ -236,7 +236,9 @@ def main():
     
     for filename, file in {'operation_outcomes.json': failed, 'operation_outcomes.json': operation_outcomes}.items():
         dump_json(filename,file)
-    
+
+    print("CWD:", os.getcwd())
+    print("Files:", os.listdir(".")) 
     print(failed)
     print("\n\n")
     print(operation_outcomes)
@@ -249,4 +251,6 @@ def main():
     return 0
 
 if __name__ == "__main__":
+    print("CWD:", os.getcwd())
+    print("Files:", os.listdir("."))
     sys.exit(main())
