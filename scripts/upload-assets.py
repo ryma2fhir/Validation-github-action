@@ -14,8 +14,8 @@ config_path = os.path.join(script_dir, "config.json")
 
 with open(config_path,"r") as f:
     config = json.load(f)
-#ROOT = './test' #used for local testing
-ROOT = Path.cwd() #used for github actions
+ROOT = './test' #used for local testing
+#ROOT = Path.cwd() #used for github actions
 SERVER_URL = config["fhir-validator"]["base_url"]
 
 IGNORE_FOLDERS = {"validation", "validation-service-fhir-r4"}
@@ -58,6 +58,7 @@ def get_json_info(file_path, failed):
 
 def get_xml_info(file_path, failed):
     try:
+        # Parse just to extract id and resourceType
         tree = ET.parse(file_path)
         root = tree.getroot()
     
@@ -67,7 +68,9 @@ def get_xml_info(file_path, failed):
         id_element = root.find(f"{NS}id")
         resource_id = id_element.get("value")
 
-        resource = ET.tostring(root, encoding='unicode', xml_declaration=True)
+        # Read raw bytes instead of re-serialising via ET
+        with open(file_path, 'rb') as f:
+            resource = f.read()
 
         return resource, resource_id, resource_type
     
@@ -86,7 +89,7 @@ def upload_resource(file_path,resource, resource_id, resource_type, format, fail
                 url,
                 data=resource,
                 headers={
-                    "Content-Type": "application/fhir+xml",
+                    "Content-Type": "application/fhir+xml;charset=utf-8",
                     "Accept": "application/fhir+json"
                     }
             )
@@ -124,7 +127,7 @@ def validate_resource(file_path, resource, resource_id, resource_type, format, o
                 url,
                 data=resource,  # raw XML string of the resource
                 headers={
-                    "Content-Type": "application/fhir+xml",
+                    "Content-Type": "application/fhir+xml;charset=utf-8",
                     "Accept": "application/fhir+json"
                     }
             )
