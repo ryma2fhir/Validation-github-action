@@ -18,7 +18,7 @@ with open(config_path,"r") as f:
 ROOT = Path.cwd() #used for github actions
 SERVER_URL = config["fhir-validator"]["base_url"]
 
-IGNORE_FOLDERS = {"validation", "validation-service-fhir-r4", "packages"}
+IGNORE_FOLDERS = {"validation", "validation-service-fhir-r4"}
 
 ASSETS_FOLDERS = [
     "CapabilityStatement",
@@ -229,8 +229,8 @@ def main():
 
         validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed)
     
-    for file, filename in {failed: 'operation_outcomes.json', operation_outcomes: 'operation_outcomes.json'}.items():
-        dump_json(filename,file)
+    dump_json(failed,'operation_outcomes.json')
+    dump_json(operation_outcomes,'operation_outcomes.json')
 
     print("CWD:", os.getcwd())
     print("Files:", os.listdir(".")) 
