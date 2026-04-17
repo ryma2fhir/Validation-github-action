@@ -53,7 +53,7 @@ def get_json_info(file_path, failed):
     
     except Exception as e:
         print(f"Error getting resource id and resource type for {str(file_path)}: {e}")
-        append_failure(file_path, e, failed)
+        append_failure(str(file_path), e, failed)
         return False
 
 def get_xml_info(file_path, failed):
@@ -76,7 +76,7 @@ def get_xml_info(file_path, failed):
     
     except Exception as e:
         print(f"Error getting resource id and/or resource type for {file_path}: {e}")
-        append_failure(file_path, str(e), failed)
+        append_failure(str(file_path), str(e), failed)
         return False
 
 def upload_resource(file_path,resource, resource_id, resource_type, format, failed):
@@ -110,12 +110,12 @@ def upload_resource(file_path,resource, resource_id, resource_type, format, fail
             print(f"Failed to upload {resource_type}/{resource_id}: {response.status_code}")
             print(f"  File: {str(file_path)}")
             print(f"  Response: {response.text}")
-            append_failure(file_path, f"{response.status_code}: {response.text}", failed)
+            append_failure(str(file_path), f"{response.status_code}: {response.text}", failed)
             return False
             
     except Exception as e:
         print(f"Error uploading {str(file_path)}: {e}")
-        append_failure(file_path, str(e), failed)
+        append_failure(str(file_path), str(e), failed)
         return False
     
 def validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed):
@@ -158,7 +158,7 @@ def validate_resource(file_path, resource, resource_id, resource_type, format, o
 
     except Exception as e:
         print(f"Error validating {str(file_path)}: {e}")
-        append_failure(file_path, str(e), failed)
+        append_failure(str(file_path), str(e), failed)
         return False
 
 

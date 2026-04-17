@@ -2,8 +2,9 @@ import os
 import json
 import sys
 from collections import defaultdict
+import yaml
 
-def parse_validation_output(results_file):
+def parse_validation_output(results_file, ignore_list):
     with open(results_file) as f:
         data = json.load(f)
     
@@ -14,6 +15,8 @@ def parse_validation_output(results_file):
             severity = issue.get("severity", "").lower()
             diagnostics = issue.get("diagnostics", "")
             
+            if is_ignored(issue, ignore_list):
+                continue
             # expression and location are both lists of strings
             expression = issue.get("expression", [])
             location = issue.get("location", [])
@@ -37,6 +40,15 @@ def parse_validation_output(results_file):
                 })
     
     return issues
+
+def is_ignored(issue, ignore_config):
+    severity = issue.get("severity", "").lower()
+    diagnostics = issue.get("diagnostics", "")
+    
+    # Get the list for this severity, default to empty list if None/missing
+    rules = ignore_config.get("ignore-list", {}).get(severity) or []
+    
+    return any(string in diagnostics for string in rules)
 
 def group_by_file(issue_list):
     grouped = defaultdict(list)
@@ -82,9 +94,13 @@ def render_section(title, emoji, issues, colour):
 
 
 def main():
+    with open("./scripts/ignore.yaml", "r") as f:
+        ignore_list = yaml.safe_load(f)
+    print(ignore_list)
+
     results_file = "operation_outcomes.json"
 
-    issues = parse_validation_output(results_file)
+    issues = parse_validation_output(results_file, ignore_list)
     failures = issues["failure"]
     fatals = issues["fatal"]
     errors = issues["error"]
@@ -123,7 +139,9 @@ def main():
 
 if __name__ == "__main__":
     main()
-    for filename in ['failed', 'operation_outcomes']:
+    '''
+    for filename in ["failed", "operation_outcomes"]:
         filepath = f"./{filename}.json"
         if os.path.exists(filepath):
             os.remove(filepath)
+            '''

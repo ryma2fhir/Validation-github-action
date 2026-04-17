@@ -1,0 +1,6 @@
+ignore-list:
+  error: ~
+  warning: 
+    - dom-6 #ignore "A resource should have narrative for robust management"
+  information:
+    - No issues detected during validation # ignore operationaloutcome rendering if no issues
