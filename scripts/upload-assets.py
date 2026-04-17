@@ -229,8 +229,8 @@ def main():
 
         validate_resource(file_path, resource, resource_id, resource_type, format, operation_outcomes, failed)
     
-    dump_json(failed,'operation_outcomes.json')
-    dump_json(operation_outcomes,'operation_outcomes.json')
+    dump_json('operation_outcomes.json',failed)
+    dump_json('operation_outcomes.json',operation_outcomes)
 
     print("CWD:", os.getcwd())
     print("Files:", os.listdir(".")) 

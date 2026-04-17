@@ -13,17 +13,17 @@ def append_failure(filename, response, failed):
     })["issue"].append(new_issue)
     return
 
-def dump_json(output_file,file):
+def dump_json(output_file,issues):
     if os.path.exists(output_file):
         with open(output_file, 'r') as f:
             existing = json.load(f)
-        for filename, outcome in file.items():
+        for filename, outcome in issues.items():
             if filename in existing:
                 existing[filename]["issue"].extend(outcome["issue"])
             else:
                 existing[filename] = outcome
     else:
-        existing = file
+        existing = issues
 
     with open(output_file, 'w') as f:
         json.dump(existing, f, indent=4)
