@@ -84,6 +84,10 @@ jobs:
       - name: Upload FHIR assets + Examples
         run: python3 validation/scripts/upload-assets.py
 
+      - name: Debug - Check ValueSet uploaded
+        run: |
+          curl -s "http://localhost:8080/fhir/ValueSet?url=https://fhir.hl7.org.uk/ValueSet/UKCore-CareSettingType" | python3 -m json.tool | grep -E '"total"|"id"|"url"'
+
       - name: Generate validation report
         if: always()
         run: python3 validation/scripts/generate-report.py
