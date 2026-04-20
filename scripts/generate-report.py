@@ -5,23 +5,26 @@ import yaml
 from pathlib import Path
 
 #for local testing
-#ROOT = Path.cwd()
+ROOT = Path.cwd()
 
 #for github repo
-ROOT = Path.cwd() / "validation"
+#ROOT = Path.cwd() / "validation"
 
 def parse_validation_output(results_file, ignore_list):
     with open(results_file) as f:
         data = json.load(f)
     
-    issues = {"fatal": [], "error": [], "warning": [], "information": [], "failure": []}
+    issues = {"fatal": [], "error": [], "warning": [], "information": [], "failure": [], "passed": []}
     
     for file_path, outcome in data.items():
         for issue in outcome.get("issue", []):
             severity = issue.get("severity", "").lower()
             diagnostics = issue.get("diagnostics", "")
+
+            if "No issues detected during validation" in diagnostics:
+                severity = "passed"
             
-            if is_ignored(issue, ignore_list):
+            if is_ignored(issue, ignore_list, severity, diagnostics):
                 continue
             # expression and location are both lists of strings
             expression = issue.get("expression", [])
@@ -47,10 +50,8 @@ def parse_validation_output(results_file, ignore_list):
     
     return issues
 
-def is_ignored(issue, ignore_config):
-    severity = issue.get("severity", "").lower()
-    diagnostics = issue.get("diagnostics", "")
-    
+def is_ignored(issue, ignore_config, severity, diagnostics):
+  
     # Get the list for this severity, default to empty list if None/missing
     rules = ignore_config.get("ignore-list", {}).get(severity) or []
     
@@ -112,6 +113,7 @@ def main():
     errors = issues["error"]
     warnings = issues["warning"]
     information = issues["information"]
+    passed = issues["passed"]
 
     summary = f"""# 🏥 FHIR Validation Summary
 
@@ -122,6 +124,7 @@ def main():
 | 🔴 Errors | {len(errors)} |
 | 🟡 Warnings | {len(warnings)} |
 | 🔵 Information | {len(information)} |
+| 🟢 Information | {len(passed)} |
 
 ---
 {render_section("Failed Uploads", "⚠️", failures, "red")}
@@ -133,6 +136,8 @@ def main():
 {render_section("Warnings", "🟡", warnings, "yellow")}
 
 {render_section("Information", "🔵", information, "blue")}
+
+{render_section("passed", "🟢", passed, "green")}
 """
 
     summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
