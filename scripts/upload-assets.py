@@ -211,12 +211,14 @@ def main():
         result = get_info(file_path, failed)
         
         if result is False:
+            total_num_files -= 1
             continue
         
         resource, resource_id, resource_type = result
         
 
         if not upload_resource(file_path, resource, resource_id, resource_type, format, failed):
+            total_num_files -= 1
             continue
 
 

@@ -1,8 +1,14 @@
 import os
 import json
-import sys
 from collections import defaultdict
 import yaml
+from pathlib import Path
+
+#for local testing
+#ROOT = Path.cwd()
+
+#for github repo
+ROOT = Path.cwd() / "validation"
 
 def parse_validation_output(results_file, ignore_list):
     with open(results_file) as f:
@@ -94,7 +100,7 @@ def render_section(title, emoji, issues, colour):
 
 
 def main():
-    with open("./scripts/ignore.yaml", "r") as f:
+    with open(f"{ROOT}/scripts/ignore.yaml", "r") as f:
         ignore_list = yaml.safe_load(f)
     print(ignore_list)
 
@@ -139,9 +145,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-    '''
     for filename in ["failed", "operation_outcomes"]:
         filepath = f"./{filename}.json"
         if os.path.exists(filepath):
             os.remove(filepath)
-            '''
