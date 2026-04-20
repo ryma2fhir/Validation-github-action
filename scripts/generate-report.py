@@ -5,10 +5,10 @@ import yaml
 from pathlib import Path
 
 #for local testing
-ROOT = Path.cwd()
+#ROOT = Path.cwd()
 
 #for github repo
-#ROOT = Path.cwd() / "validation"
+ROOT = Path.cwd() / "validation"
 
 def parse_validation_output(results_file, ignore_list):
     with open(results_file) as f:

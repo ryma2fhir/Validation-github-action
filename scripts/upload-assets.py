@@ -14,8 +14,8 @@ config_path = os.path.join(script_dir, "config.json")
 
 with open(config_path,"r") as f:
     config = json.load(f)
-ROOT = './test' #used for local testing
-#ROOT = Path.cwd() #used for github actions
+#ROOT = './test' #used for local testing
+ROOT = Path.cwd() #used for github actions
 SERVER_URL = config["fhir-validator"]["base_url"]
 
 IGNORE_FOLDERS = {"validation", "validation-service-fhir-r4"}
