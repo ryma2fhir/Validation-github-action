@@ -68,6 +68,10 @@ def make_file_link(file_path):
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     sha = os.environ.get("GITHUB_SHA", "")
     if repo and sha:
+        # Strip the runner workspace prefix to get a repo-relative path
+        workspace = os.environ.get("GITHUB_WORKSPACE", "")
+        if workspace and file_path.startswith(workspace):
+            file_path = file_path[len(workspace):].lstrip("/")
         url = f"https://github.com/{repo}/blob/{sha}/{file_path}"
         return f'<a href="{url}"><code>{file_path}</code></a>'
     return f"<code>{file_path}</code>"
