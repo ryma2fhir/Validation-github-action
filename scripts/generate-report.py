@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 import yaml
 from pathlib import Path
+import sys
 
 #for local testing
 #ROOT = Path.cwd()
@@ -118,7 +119,6 @@ def main():
     warnings = issues["warning"]
     information = issues["information"]
     passed = issues["passed"]
-
     summary = f"""# 🏥 FHIR Validation Summary
 
 | Severity | Count |
@@ -151,10 +151,17 @@ def main():
         print("✅ Summary written to GitHub Actions.")
     else:
         print(summary)
-
-if __name__ == "__main__":
-    main()
+    
     for filename in ["failed", "operation_outcomes"]:
         filepath = f"./{filename}.json"
         if os.path.exists(filepath):
             os.remove(filepath)
+    
+    major_issues = len(failures)+len(fatals)+len(errors)
+    if major_issues > 0:
+        return 1
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+    

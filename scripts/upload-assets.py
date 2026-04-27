@@ -203,7 +203,7 @@ def main():
     if len(all_files) == 0:
         return 0
 
-    print(f"Uploading {len(all_asset_files)} FHIR assets and {len(all_example_files)} FHIR Examples...")
+    print(f"Uploading {len(all_asset_files)} FHIR assets and {len(all_example_files)} FHIR examples...")
                     
             
     for file_path, format in all_asset_files:
@@ -237,20 +237,14 @@ def main():
     dump_json('operation_outcomes.json',failed)
     dump_json('operation_outcomes.json',operation_outcomes)
 
-    print("CWD:", os.getcwd())
-    print("Files:", os.listdir(".")) 
-    print(failed)
-    print("\n\n")
-    print(operation_outcomes)
-    
+  
     if failed:
         print(f"\nFailed to upload {len(failed)} assets / examples:")
         for f in failed:
             print(f"  - {f}")
-    print(f"\nSuccessfully uploaded all {total_num_files} assets")
+    print(f"\nSuccessfully uploaded {len(all_asset_files)} FHIR assets and {len(all_example_files)} FHIR examples")
     return 0
 
 if __name__ == "__main__":
-    print("CWD:", os.getcwd())
-    print("Files:", os.listdir("."))
     sys.exit(main())
+ 
